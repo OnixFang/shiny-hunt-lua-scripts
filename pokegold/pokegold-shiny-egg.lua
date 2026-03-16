@@ -37,6 +37,10 @@ while true do
 	emu.frameadvance()
 	savestate.saveslot(SLOT)
 
+	-- Snapshot current DVs (may contain stale values from previous eggs)
+	local pre_atkdef = memory.read_u8(W_EGGMON_DVS, DOMAIN)
+	local pre_spdspc = memory.read_u8(W_EGGMON_DVS + 1, DOMAIN)
+
 	-- Press A to confirm deposit (hold one frame)
 	joypad.set({ A = true })
 	emu.frameadvance()
@@ -62,6 +66,7 @@ while true do
 		local prev_atkdef, prev_spdspc = -1, -1
 		local stable_count = 0
 		local atkdef, spdspc = 0, 0
+		local seen_change = false
 
 		while extra_timeout > 0 do
 			emu.frameadvance()
@@ -69,27 +74,35 @@ while true do
 			atkdef = memory.read_u8(W_EGGMON_DVS, DOMAIN)
 			spdspc = memory.read_u8(W_EGGMON_DVS + 1, DOMAIN)
 
-			if atkdef == prev_atkdef and spdspc == prev_spdspc then
+            if atkdef == prev_atkdef and spdspc == prev_spdspc then
 				stable_count = stable_count + 1
 			else
 				stable_count = 1
 				prev_atkdef, prev_spdspc = atkdef, spdspc
 			end
 
-			-- If bytes are non-zero and stable for a couple frames, accept them
-			if not (atkdef == 0 and spdspc == 0) and stable_count >= 2 then
+			-- Track if DVs ever change from the pre-egg snapshot
+			if atkdef ~= pre_atkdef or spdspc ~= pre_spdspc then
+				seen_change = true
+			end
+
+			-- If bytes are non-zero, stable for a couple frames, and have changed
+			-- from the pre-snapshot (or the pre-snapshot was zero), accept them
+			if not (atkdef == 0 and spdspc == 0) and stable_count >= 2 and (seen_change or (pre_atkdef == 0 and pre_spdspc == 0)) then
 				break
 			end
 		end
 
-		if atkdef == 0 and spdspc == 0 then
+		if not seen_change and extra_timeout == 0 then
+			console.log(string.format("Try %d: preexisting DVs persisted — reroll", tries))
+		elseif atkdef == 0 and spdspc == 0 then
 			console.log(string.format("Try %d: timeout waiting for DVs — reroll", tries))
 		else
 			if isShiny(atkdef, spdspc) then
 				console.log(string.format("Shiny! Tries=%d ATKDEF=%02X SPDSPC=%02X", tries, atkdef, spdspc))
 				break
 			else
-				console.log(string.format("Try %d: ATKDEF=%02X SPDSPC=%02X — reroll", tries, atkdef, spdspc))
+        console.log(string.format("Try %d: ATKDEF=%02X SPDSPC=%02X — reroll", tries, atkdef, spdspc))
 			end
 		end
 	end
