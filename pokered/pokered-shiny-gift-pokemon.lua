@@ -47,7 +47,7 @@ while true do
     })
 
     -- Allow frame advancement for the party struct write to complete
-    for i = 1, 15 do
+    for i = 1, 30 do
         emu.frameadvance()
     end
 
