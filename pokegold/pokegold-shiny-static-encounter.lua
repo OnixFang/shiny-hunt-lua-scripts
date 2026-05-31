@@ -8,7 +8,8 @@ local W_ENEMYMON_DVS = 0xD0F5
 
 -- Species byte to hunt (internal index, not National Dex). Change this when targeting
 -- another static/roamer script encounter. Example: Ho-Oh is 0xFA (see constants/pokemon_constants.asm).
-local TARGET_SPECIES = 0xFA -- Ho-Oh
+-- local TARGET_SPECIES = 0xFA -- Ho-Oh
+local TARGET_SPECIES = 0xF9 -- Lugia
 
 -- Shiny DV byte for attack and defense
 local shinyAtkDef = {
